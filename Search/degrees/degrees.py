@@ -91,9 +91,59 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    
+    # 1. Inicializar el nodo de inicio
+    # state: es el ID de la persona
+    # parent: de dónde venimos (None al principio)
+    # action: la película que conecta (None al principio)
+    start = Node(state=source, parent=None, action=None)
+    
+    # 2. Usar QueueFrontier para BFS (Búsqueda en Anchura)
+    # Esto garantiza encontrar el camino más corto.
+    frontier = QueueFrontier()
+    frontier.add(start)
 
-    # TODO
-    raise NotImplementedError
+    # 3. Conjunto para llevar registro de los nodos ya explorados
+    # Esto evita ciclos infinitos si A actuó con B y B con A.
+    explored = set()
+
+    # 4. Bucle principal de búsqueda
+    while True:
+        # Si la frontera está vacía, no hay camino posible
+        if frontier.empty():
+            return None
+
+        # Sacar un nodo de la frontera (FIFO)
+        node = frontier.remove()
+        
+        # Marcar este nodo (persona) como explorado
+        explored.add(node.state)
+
+        # 5. Expandir el nodo (buscar vecinos)
+        # neighbors_for_person devuelve pares (movie_id, person_id)
+        neighbors = neighbors_for_person(node.state)
+
+        for movie_id, person_id in neighbors:
+            # Si no hemos visitado a esta persona Y no está esperando en la frontera
+            if not frontier.contains_state(person_id) and person_id not in explored:
+                
+                # Crear el nodo hijo
+                child = Node(state=person_id, parent=node, action=movie_id)
+
+                # 6. Verificar si es el objetivo (Optimización)
+                # Verificar al agregar a la frontera, no al sacar.
+                if child.state == target:
+                    path = []
+                    # Reconstruir el camino hacia atrás siguiendo los padres
+                    while child.parent is not None:
+                        path.append((child.action, child.state))
+                        child = child.parent
+                    
+                    path.reverse() # Invertir para tener orden Source -> Target
+                    return path
+
+                # Si no es el objetivo, agregar a la frontera para explorar después
+                frontier.add(child)
 
 
 def person_id_for_name(name):
