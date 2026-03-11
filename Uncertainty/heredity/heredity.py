@@ -131,25 +131,90 @@ def powerset(s):
 def joint_probability(people, one_gene, two_genes, have_trait):
     """
     Compute and return a joint probability.
-
-    The probability returned should be the probability that
-        * everyone in set `one_gene` has one copy of the gene, and
-        * everyone in set `two_genes` has two copies of the gene, and
-        * everyone not in `one_gene` or `two_gene` does not have the gene, and
-        * everyone in set `have_trait` has the trait, and
-        * everyone not in set` have_trait` does not have the trait.
     """
-    raise NotImplementedError
+    # Empiezar con una probabilidad total del 100% (1.0)
+    probability = 1.0
+
+    # Evaluar a cada persona en el diccionario 'people'
+    for person in people:
+        
+        # 1. Averiguar cuántos genes mutados tiene esta persona
+        if person in two_genes:
+            gene_count = 2
+        elif person in one_gene:
+            gene_count = 1
+        else:
+            gene_count = 0
+
+        # 2. Averiguar si la persona tiene el rasgo (trait) o no
+        has_trait = person in have_trait
+
+        # 3. Calcular la probabilidad de que tenga esa cantidad de genes
+        if people[person]["mother"] is None and people[person]["father"] is None:
+            # Si no se conoce a sus padres, se usa la probabilidad general de la población
+            gene_prob = PROBS["gene"][gene_count]
+        else:
+            # Si se conoce a sus padres, se ve que probabilidad hay de que le pasen el gen
+            mother = people[person]["mother"]
+            father = people[person]["father"]
+            
+            passing_probs = {}
+            for parent in [mother, father]:
+                # Probabilidad de que este padre pase el gen mutado
+                if parent in two_genes:
+                    # Si tiene 2, casi seguro lo pasa (menos el 1% de que mute y no lo pase)
+                    passing_probs[parent] = 1 - PROBS["mutation"]
+                elif parent in one_gene:
+                    # Si tiene 1, es un volado (50%)
+                    passing_probs[parent] = 0.5
+                else:
+                    # Si no tiene el gen, solo lo pasa si ocurre la mala suerte de una mutación (1%)
+                    passing_probs[parent] = PROBS["mutation"]
+
+            m_prob = passing_probs[mother]
+            f_prob = passing_probs[father]
+
+            # Ahora se calcula la probabilidad exacta dependiendo de los genes que tiene el hijo
+            if gene_count == 2:
+                # Recibe el gen de la madre Y del padre
+                gene_prob = m_prob * f_prob
+            elif gene_count == 1:
+                # Lo recibe de la madre y no del padre, O del padre y no de la madre
+                gene_prob = (m_prob * (1 - f_prob)) + ((1 - m_prob) * f_prob)
+            else:
+                # No lo recibe ni de la madre ni del padre
+                gene_prob = (1 - m_prob) * (1 - f_prob)
+
+        # 4. Calcular la probabilidad de mostrar el rasgo, dado el número de genes que tiene
+        trait_prob = PROBS["trait"][gene_count][has_trait]
+
+        # 5. Multiplicar estas probabilidades al total
+        probability *= (gene_prob * trait_prob)
+
+    return probability
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
     """
     Add to `probabilities` a new joint probability `p`.
-    Each person should have their "gene" and "trait" distributions updated.
-    Which value for each distribution is updated depends on whether
-    the person is in `have_gene` and `have_trait`, respectively.
     """
-    raise NotImplementedError
+    # Recorrer a cada persona en nuestro diccionario de probabilidades
+    for person in probabilities:
+        
+        # Ver cuántos genes tiene en este escenario
+        if person in two_genes:
+            gene_count = 2
+        elif person in one_gene:
+            gene_count = 1
+        else:
+            gene_count = 0
+
+        # Ver si tiene el rasgo en este escenario
+        has_trait = person in have_trait
+
+        # Sumar la probabilidad 'p' al contador de esta persona
+        probabilities[person]["gene"][gene_count] += p
+        probabilities[person]["trait"][has_trait] += p
 
 
 def normalize(probabilities):
@@ -157,7 +222,17 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    raise NotImplementedError
+    for person in probabilities:
+        
+        # Ajustar las probabilidades de los genes para que sumen 1 (100%)
+        gene_total = sum(probabilities[person]["gene"].values())
+        for g in probabilities[person]["gene"]:
+            probabilities[person]["gene"][g] /= gene_total
+
+        # Ajustar las probabilidades de los rasgos para que sumen 1 (100%)
+        trait_total = sum(probabilities[person]["trait"].values())
+        for t in probabilities[person]["trait"]:
+            probabilities[person]["trait"][t] /= trait_total
 
 
 if __name__ == "__main__":
