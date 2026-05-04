@@ -98,39 +98,52 @@ class NimAI():
 
     def get_q_value(self, state, action):
         """
-        Return the Q-value for the state `state` and the action `action`.
+        Returns the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        # Convierte la lista de estado a tupla para poder buscarla en el diccionario
+        state_tuple = tuple(state)
+        
+        # Usa .get() para que si la llave no existe, devuelva 0 por defecto
+        return self.q.get((state_tuple, action), 0)
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
-        Update the Q-value for the state `state` and the action `action`
+        Updates the Q-value for the state `state` and the action `action`
         given the previous Q-value `old_q`, a current reward `reward`,
-        and an estiamte of future rewards `future_rewards`.
+        and an estimate of future rewards `future_rewards`.
 
         Use the formula:
-
         Q(s, a) <- old value estimate
                    + alpha * (new value estimate - old value estimate)
-
-        where `old value estimate` is the previous Q-value,
-        `alpha` is the learning rate, and `new value estimate`
-        is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        state_tuple = tuple(state)
+        
+        # El nuevo valor estimado es la recompensa inmediata + las futuras
+        new_value_estimate = reward + future_rewards
+        
+        # Aplica la fórmula matemática de Q-Learning
+        self.q[(state_tuple, action)] = old_q + self.alpha * (new_value_estimate - old_q)
 
     def best_future_reward(self, state):
         """
-        Given a state `state`, consider all possible `(state, action)`
-        pairs available in that state and return the maximum of all
-        of their Q-values.
-
-        Use 0 as the Q-value if a `(state, action)` pair has no
-        Q-value in `self.q`. If there are no available actions in
-        `state`, return 0.
+        Returns the best possible reward for any available action in
+        the given state, based on current Q-values.
         """
-        raise NotImplementedError
+        available_actions = Nim.available_actions(state)
+        
+        # Si no hay acciones disponibles (el juego terminó), la recompensa futura es 0
+        if not available_actions:
+            return 0
+            
+        # Busca el valor máximo entre todas las acciones posibles en este estado
+        best_reward = float('-inf')
+        for action in available_actions:
+            q_value = self.get_q_value(state, action)
+            if q_value > best_reward:
+                best_reward = q_value
+                
+        return best_reward
 
     def choose_action(self, state, epsilon=True):
         """
@@ -143,11 +156,28 @@ class NimAI():
         If `epsilon` is `True`, then with probability
         `self.epsilon` choose a random available action,
         otherwise choose the best action available.
-
-        If multiple actions have the same Q-value, any of those
-        options is an acceptable return value.
         """
-        raise NotImplementedError
+        available_actions = list(Nim.available_actions(state))
+        
+        # 1. Encontrar la mejor acción posible (Greedy)
+        best_action = None
+        best_q = float('-inf')
+        
+        for action in available_actions:
+            q_value = self.get_q_value(state, action)
+            if q_value > best_q:
+                best_q = q_value
+                best_action = action
+
+        # 2. Algoritmo Epsilon-Greedy
+        if epsilon:
+            import random
+            # Con una probabilidad igual a self.epsilon, elige explorar al azar
+            if random.random() < self.epsilon:
+                return random.choice(available_actions)
+                
+        # Si epsilon es False, o si no cae en la probabilidad aleatoria, devuelve la mejor acción calculada.
+        return best_action
 
 
 def train(n):
