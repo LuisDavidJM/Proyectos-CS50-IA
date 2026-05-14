@@ -1,0 +1,9 @@
+# Proceso de Experimentación: Reconocimiento de Señales de Tráfico
+
+En este proyecto, experimenté con varias arquitecturas de redes neuronales utilizando TensorFlow y Keras con el objetivo de clasificar con precisión las señales de tráfico del conjunto de datos GTSRB.
+
+Inicialmente, comencé con una arquitectura simple: una única capa convolucional (con 32 filtros y un kernel de 3x3), seguida de una capa de *max-pooling*, aplanando la matriz resultante para alimentar una capa oculta densa de 128 neuronas. Aunque este modelo se entrenaba muy rápido, a su precisión le costaba superar consistentemente el umbral del 90%. El modelo frecuentemente confundía señales que tenían formas geométricas idénticas pero detalles internos distintos (como los diferentes límites de velocidad).
+
+Para mejorar la capacidad del modelo de extraer y reconocer características visuales más complejas y jerárquicas, agregué una segunda capa convolucional con un mayor número de filtros (64), seguida de otra capa de *max-pooling*. Esta adición aumentó significativamente la precisión en los datos de entrenamiento, pero rápidamente noté signos de sobreajuste (*overfitting*), ya que la precisión en el conjunto de pruebas no mejoraba al mismo ritmo y el modelo comenzaba a memorizar los datos.
+
+Para combatir este problema, introduje una capa de *Dropout* del 0.5 (50%) justo después de la capa oculta densa. Esta regularización obligó a la red neuronal a distribuir el aprendizaje, evitando que dependiera excesivamente de un grupo específico de neuronas. La arquitectura final (dos bloques de convolución y *pooling*, una capa densa de 128 unidades, un *dropout* del 50% y una capa de salida *softmax*) resultó ser altamente robusta. El modelo final logró consistentemente más de un 95% de precisión en los datos de prueba, clasificando de manera confiable las 43 categorías de señales de tráfico.
